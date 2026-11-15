@@ -1,5 +1,8 @@
 # gatewayd
 
+![CI](https://github.com/JOHNBYKOV111/gatewayd/actions/workflows/ci.yml/badge.svg)
+[![Release](https://img.shields.io/github/v/release/JOHNBYKOV111/gatewayd)](https://github.com/JOHNBYKOV111/gatewayd/releases)# gatewayd
+
 Самостоятельный LLM-шлюз на Go. Совместимый с OpenAI API, с маршрутизацией между провайдерами, автоматическим переключением при сбоях, лимитами, учётом расходов и средствами наблюдения.
 
 > Один статический бинарник на Go. Без внешних рантаймов. Встраивается в существующую Go-инфраструктуру, предсказуемая задержка p99.
