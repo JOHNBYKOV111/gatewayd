@@ -27,7 +27,8 @@ jobs:
       - name: Lint
         uses: golangci/golangci-lint-action@v7
         with:
-          version: v2.12.2
+          # Используем latest, чтобы подтянуть версию, собранную с Go 1.27+
+          version: latest
 
       - name: Test (with race detector)
         run: |
