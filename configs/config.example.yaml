@@ -1,0 +1,37 @@
+listen: ":8080"
+
+database:
+  dsn: "postgres://gatewayd:gatewayd@postgres:5432/gatewayd?sslmode=disable"
+
+providers:
+  - name: local-ollama
+    type: openai
+    base_url: "http://ollama:11434/v1"
+    api_key_env: OLLAMA_KEY
+  - name: gigachat
+    type: openai
+    base_url: "http://host.docker.internal:8090/v1"
+    api_key_env: ""
+
+models:
+  - name: "llama3.2:3b"
+    routes: [local-ollama, gigachat]
+    price: { input: 0, output: 0 }
+  - name: "GigaChat-2"
+    routes: [gigachat]
+    price: { input: 0, output: 0 }
+
+auth:
+  virtual_keys: true
+  master_key_env: GW_MASTER_KEY
+
+limits:
+  default_rpm: 60
+  default_tpm: 100000
+
+cache:
+  enabled: true
+  ttl: 1h
+
+log:
+  store_prompts: false

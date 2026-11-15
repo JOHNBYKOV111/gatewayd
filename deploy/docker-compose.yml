@@ -1,0 +1,116 @@
+# deploy/docker-compose.yml
+
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: gatewayd
+      POSTGRES_PASSWORD: gatewayd
+      POSTGRES_DB: gatewayd
+    ports:
+      - "5433:5432"
+    volumes:
+      - gatewayd-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gatewayd -d gatewayd"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11435:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.gatewayd
+      target: migrate
+    environment:
+      GW_DATABASE_DSN: postgres://gatewayd:gatewayd@postgres:5432/gatewayd?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  gatewayd:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.gatewayd
+      target: runtime
+    ports:
+      - "8080:8080"
+    environment:
+      GW_DATABASE_DSN: postgres://gatewayd:gatewayd@postgres:5432/gatewayd?sslmode=disable
+      GW_LISTEN: ":8080"
+      GW_LOG_LEVEL: "info"
+      OLLAMA_BASE_URL: "http://ollama:11434"
+      GIGACHAT_BASE_URL: "http://host.docker.internal:8090"
+      GW_MASTER_KEY: ${GW_MASTER_KEY:-master-secret}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    depends_on:
+      gatewayd:
+        condition: service_healthy
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  gatewayd-pgdata:
+  ollama-data:
+  prometheus-data:
+  grafana-data:

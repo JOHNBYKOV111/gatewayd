@@ -1,0 +1,39 @@
+# deploy/Dockerfile.gatewayd
+
+# --- Стадия 1: Migrate ---
+FROM golang:1.27-alpine AS migrate
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /migrate ./cmd/gatewayd
+
+FROM alpine:3.20
+RUN apk add --no-cache ca-certificates tzdata
+WORKDIR /app
+COPY --from=migrate /migrate /usr/local/bin/gatewayd
+COPY --from=migrate /app/configs /app/configs
+COPY --from=migrate /app/internal/store/migrations /app/internal/store/migrations
+CMD ["gatewayd", "migrate", "up"]
+
+# --- Стадия 2: Build ---
+FROM golang:1.27-alpine AS build
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /gatewayd ./cmd/gatewayd
+
+# --- Стадия 3: Runtime ---
+FROM alpine:3.20 AS runtime
+RUN apk add --no-cache ca-certificates tzdata && \
+    addgroup -S gatewayd && \
+    adduser -S -G gatewayd gatewayd
+WORKDIR /app
+COPY --from=build /gatewayd /usr/local/bin/gatewayd
+COPY --from=build /app/configs /app/configs
+COPY --from=build /app/internal/store/migrations /app/internal/store/migrations
+USER gatewayd
+EXPOSE 8080
+ENTRYPOINT ["/usr/local/bin/gatewayd"]
+CMD []

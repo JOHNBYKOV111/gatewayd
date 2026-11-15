@@ -1,0 +1,73 @@
+# === СЕКРЕТЫ (никогда не коммитить) ===
+.env
+.env.*
+!.env.example
+deploy/.env
+deploy/.env.*
+!deploy/.env.example
+deploy/gpt2giga/
+!deploy/gpt2giga/.env.example
+*.pem
+*.key
+*.crt
+secrets/
+credentials/
+
+# === БИНАРНИКИ GO ===
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# === ТЕСТОВЫЕ АРТЕФАКТЫ ===
+*.out
+coverage.out
+coverage.html
+coverage.txt
+handlers.out
+*.prof
+*.trace
+
+# === ЛОГИ ===
+*.log
+logs/
+*.cast
+
+# === K6 (результаты бенчмарков) ===
+k6-results/
+*.json.tmp
+
+# === DOCKER ===
+deploy/*.log
+*.pid
+
+# === IDE И РЕДАКТОРЫ ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === GO СЛУЖЕБНОЕ ===
+vendor/
+.gocache/
+go.work
+go.work.sum
+
+# === ВРЕМЕННЫЕ ФАЙЛЫ ===
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
+
+# === ЛОКАЛЬНЫЕ БАЗЫ ДАННЫХ ===
+*.db
+*.sqlite
+*.sqlite3

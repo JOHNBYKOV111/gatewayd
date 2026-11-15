@@ -1,0 +1,33 @@
+groups:
+  - name: gatewayd_errors
+    interval: 1m
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(gw_requests_total{status=~"5.."}[5m]))
+            /
+            sum(rate(gw_requests_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: gatewayd
+        annotations:
+          summary: "Высокая доля ошибок в gatewayd (>5%)"
+          description: "Доля ошибок за 5 минут: {{ $value | humanizePercentage }}"
+
+      - alert: BudgetBurnRateExceeded
+        expr: |
+          (
+            sum(gw_cost_rubles_total)
+            /
+            1000
+          ) > 0.90
+        for: 10m
+        labels:
+          severity: warning
+          service: gatewayd
+        annotations:
+          summary: "Выгорание бюджета gatewayd превысило 90%"
+          description: "Текущее выгорание: {{ $value | humanizePercentage }}"
