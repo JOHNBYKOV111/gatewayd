@@ -1,17 +1,19 @@
-name: ci
+name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
           go-version: "1.27.4"
           cache: true
@@ -22,13 +24,15 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      - name: Test
-        run: go test ./...
-
       - name: Lint
         uses: golangci/golangci-lint-action@v7
         with:
           version: v2.12.2
+
+      - name: Test (with race detector)
+        run: |
+          # Запускаем тесты с -race и -p 1 (последовательно, чтобы Testcontainers не перегружали раннер)
+          go test -race -p 1 ./... -count=1
 
       - name: Run govulncheck
         uses: golang/govulncheck-action@v1
